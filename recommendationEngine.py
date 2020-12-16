@@ -76,7 +76,7 @@ def recommendationEngine(sp, artist_dict):
 
     #trackData = [g.uri for g in uris]
     # print(uris)
-    recommendations = sp.recommendations(seed_tracks=uris, limit=20)
+    recommendations = sp.recommendations(seed_tracks=uris, limit=25)
     track = list()
     track_uri = list()
     for idx, item in enumerate(recommendations['tracks']):
