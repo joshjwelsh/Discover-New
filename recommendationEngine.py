@@ -1,13 +1,10 @@
 import spotipy
-from spotipy.oauth2 import SpotifyOAuth
 import json
 from collections import Counter
 import random
-import cred_swartz
+import auth
 
-client_id = cred_swartz.ID
-client_secret = cred_swartz.SECRET
-redirect_url = cred_swartz.REDIRECT
+
 
 count_page = ""
 _description = "The playlists were made using an alogrithm specialized based on you. It works based on your liked songs playlist."
@@ -24,7 +21,7 @@ class Track:
     def __repr__(self):
         return f'Artist: {self.artists}, Name: {self.name}, Uri: {self.uri} \n'
 
-
+# Return the playlist number
 def getRecommendationCount():
     
     with open("temp.dat","r") as f:
@@ -40,13 +37,12 @@ def getRecommendationCount():
 
 
 def createPlaylist(sp, recom, idx):
-    _name = f'Discover New { getRecommendationCount() }'   # Name for playlist
+    pl_name = f'Discover New { getRecommendationCount() }'   # Name for playlist
 
-    playlist = sp.user_playlist_create(user=idx,name=_name, public=True,description=_description)
+    playlist = sp.user_playlist_create(
+        user=idx, name=pl_name, public=True, description=_description)
     playlistId = playlist['id']
     sp.playlist_add_items(playlist_id=playlistId, items=recom['uri'])
-
-    
 
 
 def recommendationEngine(sp, artist_dict):
@@ -57,6 +53,7 @@ def recommendationEngine(sp, artist_dict):
     for i in range(0,2):
         random.shuffle(artists)
         for idx, item in enumerate(artists):
+            print(f"Idx - {idx} Item - {item}")
             if idx == 5:
                 break 
             track = data[item]
@@ -112,7 +109,7 @@ def createArtistDict(results):
 
 def findList(sp):
     songs = list()
-    for count in range(100):
+    for count in range(10000):
         results = sp.current_user_saved_tracks(limit=20, offset=count*20 )
         if results is None:
             return songs
@@ -124,8 +121,8 @@ def findList(sp):
                     with open('test1.txt', 'a') as f:
                         track = item['track']
                         songs.append(track)
-                        error_str = str(track['artists'][0]['name']) + " - " + str(track['name']) + "\n"
-                        #f.write(error_str)
+                        #  = str(track['artists'][0]['name']) + " - " + str(track['name']) + "\n"
+                        # #f.write(error_str)
     return songs
                     
 def findDuplicates(sp ,results):
@@ -157,13 +154,10 @@ def findDuplicates(sp ,results):
 
 
 if __name__ == "__main__":
+    
 
-
-
-    scope = "user-library-read"
-    sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id=client_id, client_secret= client_secret, redirect_uri=redirect_url, scope=scope))
+    sp = auth.getLibrary()
     results = findList(sp)
-
     # scope = "user-library-modify"
     # sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id=client_id, client_secret= client_secret, redirect_uri=redirect_url, scope=scope))
     # findDuplicates(sp, results)
@@ -173,6 +167,6 @@ if __name__ == "__main__":
     me = sp.me()
     idx = me['id']
 
-    scope = "playlist-modify-public"
-    sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id=client_id, client_secret= client_secret, redirect_uri=redirect_url, scope=scope))
+    sp = auth.setPlaylist()
+
     createPlaylist(sp, recom, idx)    
