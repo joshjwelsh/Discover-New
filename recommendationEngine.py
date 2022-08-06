@@ -1,16 +1,47 @@
-import spotipy
-from spotipy.oauth2 import SpotifyOAuth
 import json
-from collections import Counter
 import random
-import cred_swartz
+import spotipy
+import cred as CRED
+from collections import Counter
+from spotipy.oauth2 import SpotifyOAuth
 
-client_id = cred_swartz.ID
-client_secret = cred_swartz.SECRET
-redirect_url = cred_swartz.REDIRECT
+VERBOSE = False
+
+class Config():
+    def __init__(self,CRED):
+        self.client_id = CRED.ID
+        self.client_secret = CRED.SECRET
+        self.redirect_url = CRED.REDIRECT
+        self.scope = {
+            "read-library": "user-library-read",
+            "playlist-modify": "playlist-modify-public"
+        }
+    
 
 count_page = ""
 _description = "The playlists were made using an alogrithm specialized based on you. It works based on your liked songs playlist."
+
+
+class App:
+
+
+    def __init__(self):
+        self.sp = None
+        self.config = Config(CRED)
+        if self.sp is None:
+            self.createReadSp()
+        
+
+    def createReadSp(self):
+        self.sp = spotipy.Spotify(auth_manager=SpotifyOAuth(
+            client_id=self.config.client_id, client_secret=self.config.client_secret, redirect_uri=self.config.redirect_url, scope=self.config.scopes["read-library"]))
+
+    def createModifySp(self):
+        self.sp = spotipy.Spotify(auth_manager=SpotifyOAuth(
+            client_id=self.config.client_id, client_secret=self.config.client_secret, redirect_uri=self.config.redirect_url, scope=self.config.scopes["playlist-modify"]))
+
+
+
 
 class Track:
     def __init__(self, uri, artists, name):
@@ -23,6 +54,7 @@ class Track:
 
     def __repr__(self):
         return f'Artist: {self.artists}, Name: {self.name}, Uri: {self.uri} \n'
+
 
 
 def getRecommendationCount():
@@ -51,8 +83,11 @@ def createPlaylist(sp, recom, idx):
 
 def recommendationEngine(sp, artist_dict):
     data = {x: v for (x,v) in artist_dict.items() if len(v) >= 1 and len(v) <= 5}
+    if VERBOSE:
+        print(f"data:\n\n{data}\n\n")
     artists = [v for v in data.keys()]
-    # print(artists)
+    if VERBOSE:
+        print(f"artists:\n\n{artists}\n\n")
     recomm_tracks = list()
     for i in range(0,2):
         random.shuffle(artists)
@@ -68,9 +103,29 @@ def recommendationEngine(sp, artist_dict):
     for i , element in enumerate(seeds):
         print(i, ") ", element)
     uris = list()
-    # print(seeds)
-    # print(len(seeds))
-    #print(seeds[0])
+    s = []
+
+    for seed in seeds:
+        if len(seed) >= 2:
+            l = len(seed)
+            r = random.randint(0, l-1)
+            s.append(seed[r])
+
+        else:
+            s.append(seed)
+
+    
+    seeds = s
+    if VERBOSE:
+        print(f"Element s: {len(s)} {s}")
+
+
+
+
+    if VERBOSE:
+        print(f"Element seeds: {len(seeds)} {seeds}")
+
+
     for x in range(5):
         uris.append(seeds[x][0].uri)
 
@@ -159,9 +214,10 @@ def findDuplicates(sp ,results):
 if __name__ == "__main__":
 
 
-
+    config = Config(CRED)
     scope = "user-library-read"
-    sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id=client_id, client_secret= client_secret, redirect_uri=redirect_url, scope=scope))
+    sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id=config.client_id, client_secret=config.client_secret,
+                                                   redirect_uri=config.redirect_url, scope=config.scope['read-library']))
     results = findList(sp)
 
     # scope = "user-library-modify"
@@ -174,5 +230,6 @@ if __name__ == "__main__":
     idx = me['id']
 
     scope = "playlist-modify-public"
-    sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id=client_id, client_secret= client_secret, redirect_uri=redirect_url, scope=scope))
+    sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id=config.client_id, client_secret=config.client_secret,
+                                                   redirect_uri=config.redirect_url, scope=config.scope['playlist-modify']))
     createPlaylist(sp, recom, idx)    
